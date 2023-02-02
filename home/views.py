@@ -5,6 +5,12 @@ from .models import *
 from .serializer import *
 from rest_framework.views import APIView
 from rest_framework import status, viewsets
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+
+
+from django.core.paginator import Paginator
+from .helper import *
 # Create your views here.
 
 @api_view(['GET','POST','PATCH','PUT'])
@@ -77,29 +83,47 @@ def patch_todo(request):
 
 
 class Todos(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
 
-        todo_obj = Todo.objects.all()
-        serializer = TodoSerialzer(todo_obj,many=True)
-        return Response({'status': True,'message': 'todo fetched','data':serializer.data})
+        # print(request.user)
+
+        # todo_obj = Todo.objects.filter(user = request.user)
+        # serializer = TodoSerialzer(todo_obj,many=True)
+        # return Response({'status': True,'message': 'todo fetched','data':serializer.data})
+
+
+        #################### pagination #################
+
+        
+
+        todo_obj = Todo.objects.filter(user = request.user)
+        page = request.GET.get('page',1)
+        page_obj = Paginator(todo_obj, page)
+        results = paginate(todo_obj,page_obj,page)
+        # print(results)
+
+        serializer = TodoSerialzer(results['results'],many=True)
+        return Response({'status': True,'message': 'todo fetched','data':{'data':serializer.data,'pagination':results['pagination']}})
 
     def post(self, request):
 
-        try:
+        # try:
+        data = request.data
+        data['user'] = request.user.id
+        print(data)
+        serializer = TodoSerialzer(data = data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': True,'message': 'success data','data':serializer.data})
 
-            data = request.data
-            print(data)
-            serializer = TodoSerialzer(data = data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response({'status': True,'message': 'success data','data':serializer.data})
+        return Response({'status': False,'message': 'invalid data','error':serializer.errors})
 
-            return Response({'status': False,'message': 'invalid data','error':serializer.errors})
-
-        except Exception as e:
-            print(e)
-            return Response({'status': False,'message': 'something went wrong'})
+        # except Exception as e:
+        #     print(e)
+        #     return Response({'status': False,'message': 'something went wrong'})
 
     def patch(self, request):
 
@@ -171,3 +195,5 @@ class TodoViewSet(viewsets.ModelViewSet):
 
 
 
+# https://github.com/boxabhi
+# https://github.com/boxabhi/enginee_babu_authenticate/blob/main/base_rest/utils.py

@@ -9,7 +9,7 @@ class TodoSerialzer(serializers.ModelSerializer):
 
     class Meta:
         model = Todo
-        fields = ['todo_title','slug','todo_description','is_done','uid']
+        fields = ['user','todo_title','slug','todo_description','is_done','uid']
 
     def get_slug(self,obj):
 
@@ -38,7 +38,7 @@ class TimingTodoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimingTodo
         exclude = ['created_at', 'updated_at']
-        depth =1
+        # depth =1
 
 
     

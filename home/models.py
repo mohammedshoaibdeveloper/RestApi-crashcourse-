@@ -1,11 +1,12 @@
 from django.db import models
 import uuid
+from django.contrib.auth.models import User
 # Create your models here.
 
 
 class BaseModel(models.Model):
 
-    uid = models.UUIDField(primary_key=True,editable=False,default=uuid.uuid4())
+    uid = models.UUIDField(primary_key=True,editable=False,default=uuid.uuid4)
     created_at = models.DateField(auto_now=True)
     updated_at = models.DateField(auto_now_add=True)
 
@@ -15,6 +16,7 @@ class BaseModel(models.Model):
 
 class Todo(BaseModel):
     
+    user = models.ForeignKey(User,on_delete=models.SET_NULL,blank = True,null = True)
     todo_title = models.CharField(max_length=100)
     todo_description = models.TextField()
     is_done = models.BooleanField(default=False)
