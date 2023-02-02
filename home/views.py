@@ -3,6 +3,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import *
 from .serializer import *
+from rest_framework.views import APIView
+from rest_framework import status, viewsets
 # Create your views here.
 
 @api_view(['GET','POST','PATCH','PUT'])
@@ -51,5 +53,121 @@ def post_todo(request):
         print(e)
         return Response({'status': False,'message': 'something went wrong'})
 
+@api_view(['PATCH'])
+def patch_todo(request):
 
-# done 35 minure 40 seconds
+    try:
+        data = request.data
+        if not data.get('uid'):
+
+            return Response({'status': False,'message': 'uid is required','data':{}})
+
+
+        obj = Todo.objects.get(uid = data.get('uid'))
+        serializers = TodoSerialzer(obj,data = data,partial=True)
+        if serializers.is_valid():
+            serializers.save()
+            return Response({'status': True,'message': 'success data','data':serializers.data})
+
+        return Response({'status': False,'message': 'invalid data','error':serializers.errors})
+
+    except Exception as e:
+        print(e)
+        return Response({'status': False,'message': 'invalid uid','data':{}})
+
+
+class Todos(APIView):
+
+    def get(self, request):
+
+        todo_obj = Todo.objects.all()
+        serializer = TodoSerialzer(todo_obj,many=True)
+        return Response({'status': True,'message': 'todo fetched','data':serializer.data})
+
+    def post(self, request):
+
+        try:
+
+            data = request.data
+            print(data)
+            serializer = TodoSerialzer(data = data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': True,'message': 'success data','data':serializer.data})
+
+            return Response({'status': False,'message': 'invalid data','error':serializer.errors})
+
+        except Exception as e:
+            print(e)
+            return Response({'status': False,'message': 'something went wrong'})
+
+    def patch(self, request):
+
+        try:
+            data = request.data
+            if not data.get('uid'):
+
+                return Response({'status': False,'message': 'uid is required','data':{}})
+
+
+            obj = Todo.objects.get(uid = data.get('uid'))
+            serializers = TodoSerialzer(obj,data = data,partial=True)
+            if serializers.is_valid():
+                serializers.save()
+                return Response({'status': True,'message': 'success data','data':serializers.data})
+
+            return Response({'status': False,'message': 'invalid data','error':serializers.errors})
+
+        except Exception as e:
+            print(e)
+            return Response({'status': False,'message': 'invalid uid','data':{}})
+
+
+    def put(self, request):
+
+        return Response({'status': 200,'message': 'yes django framework is working',"method":"PUT"})
+
+    def delete(self, request):
+
+        return Response({'status': 200,'message': 'yes django framework is working',"method":"delete"})
+
+
+from rest_framework.decorators import action
+
+
+class TodoViewSet(viewsets.ModelViewSet):
+    queryset = Todo.objects.all()
+    serializer_class = TodoSerialzer
+
+    #agr detail=False hoga to iska mtlb ye hy k hm paranerter mn koi chz pass nhi krrhe for example agr hm ko slug pass krna hy to isko true krna prega or wo chz is action se phle pass krni pregi
+
+    @action(detail=False, methods=['get'])
+    def get_timing_to_todo(self,request):
+
+        objs = TimingTodo.objects.all()
+        serializer = TimingTodoSerializer(objs,many=True)
+        return Response({'status': True,'message': 'timing todo fetched','data':serializer.data})
+
+
+    @action(detail=False, methods=['post'])
+    def add_data_to_todo(self,request):
+
+        try:
+
+            data = request.data
+            serializer = TimingTodoSerializer(data = data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'status': True,'message': 'success data','data':serializer.data})
+
+            return Response({'status': False,'message': 'invalid data','error':serializer.errors})
+
+
+        
+        except Exception as e:
+            print(e)
+            return Response({'status': False,'message': 'invalid uid','data':{}})
+        
+
+
+
