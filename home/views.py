@@ -197,3 +197,167 @@ class TodoViewSet(viewsets.ModelViewSet):
 
 # https://github.com/boxabhi
 # https://github.com/boxabhi/enginee_babu_authenticate/blob/main/base_rest/utils.py
+
+
+
+################################### Advanced queries #############################
+
+from home.faker import *
+
+class getData(APIView):
+
+    def post(self, request):
+
+        # generate_random_data(n = 20)
+        generate_data_foriegnkey(n =20)
+        return Response({'status': True,'message': 'generate data successfully'})
+
+    def get(self, request):
+
+        data = Book.objects.all()
+        serializer = BookSerialzer(data,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+import datetime
+from django.db.models import Q
+from django.db.models import F
+from django.db.models import F, Value as V
+from django.db.models.functions import Concat
+from django.db.models import Avg, Max, Min
+from django.db.models import Count
+
+from django.db.models import F, Q, Value, When, Case
+from decimal import Decimal
+
+
+class AdvancedQuery(viewsets.ModelViewSet):
+
+    queryset = Book.objects.all()
+    serializer_class = BookSerialzer
+
+
+    @action(detail=False, methods=['get'])
+    def get_book_by_title(self,request):
+
+        objs = Book.objects.filter(title = "Madison King")
+        serializer = BookSerialzer(objs,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+    
+    @action(detail=False, methods=['get'])
+    def get_book_by_startwith(self,request):
+
+        objs = Book.objects.filter(title__startswith = "J")
+        serializer = BookSerialzer(objs,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+    @action(detail=False, methods=['get'])
+    def get_book_by_publishedate(self,request):
+
+        # Books published in 2021
+        books = Book.objects.filter(published__year=2021)
+        # Books published in the year 2000 or after
+        books = Book.objects.filter(published__year__gte=2000)
+        # # Books published before the year 2000
+        # books = Book.objects.filter(published__year__lt=2000)
+
+
+        serializer = BookSerialzer(books,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+
+    @action(detail=False, methods=['get'])
+    def get_book_by_startend_data(self,request):
+
+        start_date = datetime.date(2000, 1, 1)
+        end_date = datetime.date(2021, 1, 3)
+        books = Book.objects.filter(published__range=(start_date, end_date))
+
+
+        serializer = BookSerialzer(books,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+    # Q Objects
+
+    @action(detail=False, methods=['get'])
+    def get_book_by_Qobj(self,request):
+
+        # Get all books published in 2018 or 2020
+        books = Book.objects.filter(Q(published__year=2018) | Q(published__year=2020))
+
+        serializer = BookSerialzer(books,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+    # F expressions
+
+    @action(detail=False, methods=['get'])
+    def get_book_f_expression(self,request):
+
+        # Query books published by authors under 30 years old (this is not exactly true because years vary in length)
+        books = Book.objects.filter(published__lte=F("author__birth_date") + datetime.timedelta(days=365*30))
+
+        serializer = BookSerialzer(books,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+
+    @action(detail=False, methods=['get'])
+    def get_book_f_expression_for_multiple_queies(self,request):
+
+        book = Book.objects.get(title="Timothy Mason Jr.")
+        book.update(rating=F("rating") + 1)
+
+        serializer = BookSerialzer(book)
+        return Response({'status': True,'data':serializer.data})
+
+    
+    # Annotation
+
+    @action(detail=False, methods=['get'])
+    def get_book_by_annotate(self,request):
+
+        # author = Author.objects.annotate(full_name=Concat(F("firstname"), V(" "), F("lastname"))).values('nickname','full_name','firstname','lastname','birth_date')
+
+        # Add  a new field with the authors age at the time of publishing the book
+        # books = Book.objects.annotate(author_age=F("published") - F("author__birth_date")).values('author_age')
+        # Add a new field with the rating multiplied by 100
+        books = Book.objects.annotate(rating_multiplied=F("rating") * 100).values('rating_multiplied')
+
+        # serializer = AuthorSerialzer(author)
+        return Response({'status': True,'data':books})
+
+
+    # Aggregation
+
+    @action(detail=False, methods=['get'])
+    def get_book_price_by_Aggregation(self,request):
+
+        # result = Book.objects.aggregate(Avg("price"))
+        # {'price__avg': Decimal('13.50')}
+        # result = Book.objects.aggregate(Max("price"))
+        # {'price__max: Decimal('13.50')}
+        # result = Book.objects.aggregate(Min("published"))
+        # {'published__min': datetime.date(1866, 7, 25)}
+
+        # authors = Author.objects.annotate(num_books=Count("books")).values('books')
+
+        # Calculate average prices for books in all categories.
+        book = Book.objects.values("category").annotate(Avg("price"))
+        # {'category': 'Historical fiction', 'price__avg': Decimal('13.9900000000000')}, {'category': 'Romance', 'price__avg': Decimal('16.4950000000000')}
+
+     
+        return Response({'status': True,'data':book})
+
+
+
+    # Case...When
+
+    @action(detail=False, methods=['get'])
+    def get_data_case_when(self,request):
+
+        books = Book.objects.annotate(discounted_price=Case(
+            When(category="Romance", then=F("price") * Decimal(0.95)),
+            When(category="Mystery", then=F("price") * Decimal(0.8)),
+            default="price"
+        )).values('discounted_price')
+
+        return Response({'status': True,'data':books})

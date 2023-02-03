@@ -59,3 +59,17 @@ class TimingTodoSerializer(serializers.ModelSerializer):
 
 
 
+class AuthorSerialzer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Author
+        fields = '__all__'
+
+
+class BookSerialzer(serializers.ModelSerializer):
+
+    author = AuthorSerialzer()
+
+    class Meta:
+        model = Book
+        fields = '__all__'

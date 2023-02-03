@@ -4,6 +4,7 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'todo-viewset', TodoViewSet, basename='todo') 
+router.register(r'advanced-queries', AdvancedQuery, basename='query') 
 
 urlpatterns = [
 
@@ -16,5 +17,8 @@ urlpatterns = [
 
 
  path('todo/',Todos.as_view()),
+
+ ################################### Advanced queries #############################
+ path('getdata/',getData.as_view()),
 ]
 urlpatterns += router.urls
