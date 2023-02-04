@@ -11,6 +11,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from django.core.paginator import Paginator
 from .helper import *
+from .protection import *
 # Create your views here.
 
 @api_view(['GET','POST','PATCH','PUT'])
@@ -361,3 +362,42 @@ class AdvancedQuery(viewsets.ModelViewSet):
         )).values('discounted_price')
 
         return Response({'status': True,'data':books})
+
+
+    @action(detail=False, methods=['get'])
+    def get_book_select_related(self,request):
+
+        books = Book.objects.select_related("author").all()
+        serializer = BookSerialzer(books,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+
+    @action(detail=False, methods=['get'])
+    def get_book_prefetch_related(self,request):
+        
+        authors = Author.objects.prefetch_related("books").all()
+        serializer = AuthorSerialzer(authors,many=True)
+        return Response({'status': True,'data':serializer.data})
+
+
+    @action(detail=False, methods=['post'])
+    def generatepassword(self,request):
+        
+        password = request.data['password']
+        encryptpassword = hash_password(password)
+        print("password-----",encryptpassword)
+        return Response({'status': True,'password':password,'encryptpassword':encryptpassword})
+
+    @action(detail=False, methods=['post'])
+    def verifypassword(self,request):
+        
+        encryptpassword = check_password(request.data['password'],request.data['hashed_password'])
+        print("encryptpassword",encryptpassword)
+        if encryptpassword:
+        
+            return Response({'status': True,'password':request.data['password'],'encryptpassword':request.data['hashed_password']})
+
+        else:
+            return Response({'status': True,"message":"Password not match"})
+
+    
