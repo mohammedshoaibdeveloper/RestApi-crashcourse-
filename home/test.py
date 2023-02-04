@@ -38,3 +38,11 @@ class BookModelTestCase(TestCase):
         self.assertEqual(self.book.published, '2000-01-01')
         self.assertEqual(self.book.price, '19.99')
         self.assertEqual(self.book.rating, 4)
+
+
+def test_all_data(self):
+    authors = Author.objects.all()
+    books = Book.objects.all()
+
+    self.assertEqual(len(authors), 2)
+    self.assertEqual(len(books), 1)
