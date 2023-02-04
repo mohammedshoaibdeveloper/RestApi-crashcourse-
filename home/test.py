@@ -39,10 +39,40 @@ class BookModelTestCase(TestCase):
         self.assertEqual(self.book.price, '19.99')
         self.assertEqual(self.book.rating, 4)
 
+from datetime import datetime, date
+class BookModelTestCase(TestCase):
+    def setUp(self):
+        Author.objects.create(
+            firstname='John',
+            lastname='Doe',
+            birth_date='1980-01-01'
+        )
+        Author.objects.create(
+            firstname='Jane',
+            lastname='Doe',
+            birth_date='1981-01-01'
+        )
+        Book.objects.create(
+            author=Author.objects.get(firstname='John'),
+            title='My First Book',
+            category='Fiction',
+            published='2000-01-01',
+            price='19.99',
+            rating=4
+        )
 
-def test_all_data(self):
-    authors = Author.objects.all()
-    books = Book.objects.all()
+    def test_all_data(self):
+        authors = Author.objects.all()
+        self.assertEqual(authors.count(), 2)
 
-    self.assertEqual(len(authors), 2)
-    self.assertEqual(len(books), 1)
+        books = Book.objects.all()
+        self.assertEqual(books.count(), 1)
+        self.assertEqual(books[0].author.firstname, 'John')
+        self.assertEqual(books[0].title, 'My First Book')
+        self.assertEqual(books[0].category, 'Fiction')
+        expected_date = date(2000, 1, 1)
+        self.assertEqual(books[0].published, expected_date)
+        self.assertEqual(str(books[0].price), '19.99')
+        self.assertEqual(books[0].rating, 4)
+
+
