@@ -15,8 +15,6 @@ class TodoSerialzer(serializers.ModelSerializer):
 
         return slugify(obj.todo_title)
 
-
-
     def validate_todo_title(self,data):
         if data:
             todo_title = data

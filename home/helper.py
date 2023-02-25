@@ -33,3 +33,19 @@ def paginate(data, paginator, pagenumber):
         },
         'results': data
     }
+
+
+from django.core.mail import send_mail
+from django.conf import settings
+from decouple import config
+
+
+def send_main_without_celery():
+
+    send_mail("CELERY WORKED YEAH!",
+        "CELERY IS COOL",
+        config('EMAIL_HOST_USER'),
+        ['shoaibbilal101@gmail.com'],
+        fail_silently = False
+    )
+    return None

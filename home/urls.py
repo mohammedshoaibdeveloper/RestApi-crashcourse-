@@ -20,5 +20,8 @@ urlpatterns = [
 
  ################################### Advanced queries #############################
  path('getdata/',getData.as_view()),
+
+ path('myindex/',myindex),
+
 ]
 urlpatterns += router.urls

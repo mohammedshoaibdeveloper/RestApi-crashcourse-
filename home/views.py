@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render,HttpResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from .models import *
@@ -400,4 +400,22 @@ class AdvancedQuery(viewsets.ModelViewSet):
         else:
             return Response({'status': True,"message":"Password not match"})
 
-    
+
+
+####################################### Celery #####################################
+
+
+from .task import *
+from .helper import *
+
+
+
+def myindex(request):
+    # sleep(10)
+
+    # sleepy.delay(30)
+    send_main_without_celery()
+    # send_mail_task.delay()
+
+    return HttpResponse("<h1>Hello from celery ,</h1>")
+
