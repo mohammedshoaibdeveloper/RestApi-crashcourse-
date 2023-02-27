@@ -22,6 +22,8 @@ urlpatterns = [
  path('getdata/',getData.as_view()),
 
  path('myindex/',myindex),
+ path('getAccounts/',getAccounts.as_view()),
 
 ]
 urlpatterns += router.urls
+

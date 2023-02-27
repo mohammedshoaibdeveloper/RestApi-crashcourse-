@@ -209,8 +209,8 @@ class getData(APIView):
 
     def post(self, request):
 
-        # generate_random_data(n = 20)
-        generate_data_foriegnkey(n =20)
+        generate_random_data(n = 5000)
+        # generate_data_foriegnkey(n =1000)
         return Response({'status': True,'message': 'generate data successfully'})
 
     def get(self, request):
@@ -414,8 +414,36 @@ def myindex(request):
     # sleep(10)
 
     # sleepy.delay(30)
-    send_main_without_celery()
-    # send_mail_task.delay()
+    # send_main_without_celery()
+    send_mail_task.delay()
 
     return HttpResponse("<h1>Hello from celery ,</h1>")
+
+
+############################### redis ################################
+
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+from django.views.decorators.cache import cache_page
+from django.core.cache import cache
+
+
+CACHE_TTL = getattr(settings ,'CACHE_TTL' , DEFAULT_TIMEOUT)
+
+
+class getAccounts(APIView):
+
+    def get(self,request):
+
+        checkAccountsExist = cache.get('AccountsData')
+        if checkAccountsExist:
+            print("cache exist")
+            return Response(checkAccountsExist)
+        else:
+
+            authorobj = Author.objects.all()
+            serializer = AuthorSerialzer(authorobj,many=True)
+            message = {'status': True,'data':serializer.data}
+            cache.set('AccountsData',message)
+            print("not exist")
+            return Response(message)
 

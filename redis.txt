@@ -1,0 +1,154 @@
+####################### Redis ####################################
+
+
+Step 1:
+
+add in views.py:
+
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+from django.views.decorators.cache import cache_page
+from django.core.cache import cache
+
+
+CACHE_TTL = getattr(settings ,'CACHE_TTL' , DEFAULT_TIMEOUT)
+
+Step2:
+
+add in setting.py
+
+#########Django Cache
+
+CACHE_TTL = 60 * 1500
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient"
+        },
+        "KEY_PREFIX": "example"
+    }
+}
+
+Step3:
+
+install these packages:
+
+channels_redis
+django-redis==4.12.1
+django-redis-cache==3.0.0
+Twisted[tls,http2]
+
+Step4:
+
+create a models:
+
+class Author(models.Model):
+    nickname = models.CharField(max_length=20, null=True, blank=True)
+    firstname = models.CharField(max_length=20)
+    lastname = models.CharField(max_length=40)
+    birth_date = models.DateField()
+
+
+Step5:
+
+create a serialzer:
+
+class AuthorSerialzer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Author
+        fields = '__all__'
+
+Step6:
+
+
+create a faker.py file:
+
+
+from .models import *
+from faker import Faker
+fake = Faker()
+import random
+
+
+def generate_random_data(n)->bool:
+    [Author.objects.create(
+        nickname = fake.name(),
+        firstname = fake.name(),
+        lastname = fake.name(),
+        birth_date = fake.date_this_century()
+    ) for i in range(0,n)
+
+    ]
+
+    return True
+
+def queryfunc(id):
+    data = Author.objects.get(id = id)
+    return data
+
+
+def generate_data_foriegnkey(n)->bool:
+    [Book.objects.create(
+        author = queryfunc(fake.pyint(min_value=1, max_value=20, step=1)),
+        title = fake.name(),
+        category = fake.random_element(elements=("Fiction", "Non-Fiction", "Mystery", "Romance", "Science Fiction", "Fantasy", "Horror", "Comics")),
+        published = fake.date_this_century(),
+        price = fake.pydecimal(left_digits=2, right_digits=2, positive=True),
+        rating = fake.pyint(min_value=1, max_value=5, step=1)
+    ) for i in range(0,n)
+
+    ]
+
+    return True
+
+
+Step7:
+
+
+create api :
+
+
+from home.faker import *
+
+class getData(APIView):
+
+    def post(self, request):
+
+        generate_random_data(n = 1500)
+        return Response({'status': True,'message': 'generate data successfully'})
+
+
+add in urls.py:
+
+
+ path('getdata/',getData.as_view()),
+
+
+
+Step 8:
+
+install redis:
+
+docker run -d -p 6379:6379 redis
+
+
+class getAccounts(APIView):
+
+    def get(self,request):
+
+        checkAccountsExist = cache.get('AccountsData')
+        if checkAccountsExist:
+            print("cache exist")
+            return Response(checkAccountsExist)
+        else:
+
+            authorobj = Author.objects.all()
+            serializer = AuthorSerialzer(authorobj,many=True)
+            message = {'status': True,'data':serializer.data}
+            cache.set('AccountsData',message)
+            print("not exist")
+            return Response(message)
+

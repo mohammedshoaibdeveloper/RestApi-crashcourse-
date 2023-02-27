@@ -1,3 +1,5 @@
+################# CELERY #################################
+
 Step 1:
 
 create celery.py in project directory
