@@ -1,0 +1,57 @@
+################# CELERY BEAT ################################################
+
+
+step 1:
+
+pip install django-celery-beat
+
+step2:
+
+add in setting.py installed app:
+
+'django_celery_beat'
+
+step3:
+
+run migrations
+
+step4:
+
+run this command:
+
+celery:
+
+celery -A projectname worker --loglevel=info
+
+celery beat:
+
+celery -A [project-name] beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+add task from admin panel:
+
+add clock
+
+add crontab
+
+add intervals
+
+add periodic task
+
+if you want to send email:
+
+
+
+from django.core.mail import send_mail
+from django.conf import settings
+from decouple import config
+
+@app.task
+def send_mail_task():
+
+    send_mail("CELERY WORKED YEAH!",
+        "CELERY IS COOL",
+        config('EMAIL_HOST_USER'),
+        ['techwithsns@gmail.com'],
+        fail_silently = False
+    )
+    print("Email Send")
