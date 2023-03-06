@@ -1,0 +1,206 @@
+################## Kafka #####################################
+
+step 1:
+
+create a Dockerfile:
+
+# Use an official Python runtime as a parent image
+FROM python:3.8
+
+# Set the working directory to /app
+WORKDIR /app
+
+# Copy the current directory contents into the container at /app
+COPY . /app/
+
+# Install any needed packages specified in requirements.txt
+RUN pip install -r requirements.txt
+
+# Set the environment variable for Kafka bootstrap servers
+ENV KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+
+# Run the command to start the Django development server
+CMD python manage.py runserver 0.0.0.0:8000
+
+
+
+step 2:
+
+create a docker-compose.yaml file:
+
+version: '3.6'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    restart: always
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
+
+
+step 3:
+
+creat a requirements file:
+
+step4:
+
+server 1:
+
+docker exec -it kafka kafka-console-producer --topic test --bootstrap-server localhost:9092
+
+step5:
+
+server2:
+
+docker exec -it kafka kafka-console-consumer --topic test --from-beginning --bootstrap-server localhost:9092
+
+step6:
+
+write a message to server 1 and see this is server 2
+
+
+######################### Create Api for this ##############################
+
+Step1:
+
+install confluent-kafka==2.0.2
+
+pip install confluent-kafka==2.0.2
+
+
+step2:
+
+generate two files:
+
+kafka_producer.py and kafka_consumer.py
+
+in kafka_producer.py here is code:
+
+from confluent_kafka import Producer
+
+producer = Producer({
+    'bootstrap.servers': 'localhost:9092', # Change this to your Kafka server's address
+    'client.id': 'django_producer'
+})
+
+
+def send_message(topic, message):
+    try:
+        producer.produce(topic, value=message)
+        producer.flush()
+        print(f"Message '{message}' sent to topic '{topic}'")
+    except Exception as e:
+        print(f"Error sending message to topic '{topic}': {e}")
+
+
+
+in kafka_consumer.py here is code:
+
+from confluent_kafka import Consumer, KafkaError
+
+consumer = Consumer({
+    'bootstrap.servers': 'localhost:9092', # Change this to your Kafka server's address
+    'group.id': 'django_group',
+    'auto.offset.reset': 'earliest'
+})
+
+def consume_messages(topic, callback=None):
+    consumer.subscribe([topic])
+
+    while True:
+        message = consumer.poll(1.0)
+
+        if message is None:
+            continue
+
+        if message.error():
+            if message.error().code() == KafkaError._PARTITION_EOF:
+                print(f"Reached end of partition '{message.topic()}'")
+            else:
+                print(f"Error reading message from topic '{message.topic()}' partition {message.partition()}: {message.error()}")
+        else:
+            print(f"Received message '{message.value().decode('utf-8')}' from topic '{message.topic()}' partition {message.partition()} offset {message.offset()}")
+            if callback is not None:
+                callback(message)
+
+
+
+step 3:
+
+generate views.py file:
+
+from django.http import StreamingHttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from .kafka_producer import *
+from .kafka_consumer import *
+
+
+@csrf_exempt
+def send_message_to_kafka(request):
+    if request.method == 'POST':
+        topic = request.POST.get('topic')
+        message = request.POST.get('message')
+        send_message(topic, message)
+        return HttpResponse('Message sent to Kafka')
+    else:
+        return HttpResponse('Invalid request method')
+
+
+def stream_messages_from_kafka(callback, topic):
+    def event_stream():
+        consume_messages(topic, callback=callback)
+        # This line is only reached if consume_messages returns due to an error.
+        # If you want to keep the connection open, you can add a retry loop here.
+        yield 'Finished consuming messages'
+
+    return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+
+
+@csrf_exempt
+def consume_messages_from_kafka(request):
+    if request.method == 'GET':
+        topic = request.GET['topic']
+
+        def callback(message):
+            message_str = message.value().decode('utf-8')
+            yield 'data: {}\n\n'.format(message_str)
+
+        return stream_messages_from_kafka(callback, topic)
+    else:
+        return HttpResponse('Invalid request method')
+
+
+  
+step4:
+
+
+ path('send_message_to_kafka/',send_message_to_kafka),
+ path('consume_messages_from_kafka/',consume_messages_from_kafka),

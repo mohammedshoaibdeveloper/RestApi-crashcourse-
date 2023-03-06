@@ -24,6 +24,9 @@ urlpatterns = [
  path('myindex/',myindex),
  path('getAccounts/',getAccounts.as_view()),
 
+ path('send_message_to_kafka/',send_message_to_kafka),
+ path('consume_messages_from_kafka/',consume_messages_from_kafka),
+
 ]
 urlpatterns += router.urls
 

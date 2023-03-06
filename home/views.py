@@ -447,3 +447,49 @@ class getAccounts(APIView):
             print("not exist")
             return Response(message)
 
+
+
+####################### kafka #############################################
+
+
+
+from django.http import StreamingHttpResponse
+from django.views.decorators.csrf import csrf_exempt
+from .kafka_producer import *
+from .kafka_consumer import *
+
+
+@csrf_exempt
+def send_message_to_kafka(request):
+    if request.method == 'POST':
+        topic = request.POST.get('topic')
+        message = request.POST.get('message')
+        send_message(topic, message)
+        return HttpResponse('Message sent to Kafka')
+    else:
+        return HttpResponse('Invalid request method')
+
+
+def stream_messages_from_kafka(callback, topic):
+    def event_stream():
+        consume_messages(topic, callback=callback)
+        # This line is only reached if consume_messages returns due to an error.
+        # If you want to keep the connection open, you can add a retry loop here.
+        yield 'Finished consuming messages'
+
+    return StreamingHttpResponse(event_stream(), content_type='text/event-stream')
+
+
+@csrf_exempt
+def consume_messages_from_kafka(request):
+    if request.method == 'GET':
+        topic = request.GET['topic']
+
+        def callback(message):
+            message_str = message.value().decode('utf-8')
+            yield 'data: {}\n\n'.format(message_str)
+
+        return stream_messages_from_kafka(callback, topic)
+    else:
+        return HttpResponse('Invalid request method')
+
